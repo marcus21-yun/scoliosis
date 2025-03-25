@@ -44,8 +44,7 @@ class ImageProcessor:
                 
                 # 곡률 계산
                 if len(approx) >= 3:
-                    curvature = self._calculate_curvature(approx)
-                    return min(curvature, 1.0)  # 최대값 제한
+                    return self._calculate_curvature(approx)  # 최대값 제한 제거
             
             return None
         except Exception as e:
@@ -121,6 +120,8 @@ class ImageProcessor:
             
             # 곡률 계산
             angles = []
+            max_angle = 0
+            
             for i in range(len(points) - 2):
                 p1 = points[i][0]
                 p2 = points[i + 1][0]
@@ -130,13 +131,17 @@ class ImageProcessor:
                 v1 = np.array([p2[0] - p1[0], p2[1] - p1[1]])
                 v2 = np.array([p3[0] - p2[0], p3[1] - p2[1]])
                 
-                # 각도 계산
+                # 각도 계산 (라디안에서 도수로 변환)
                 cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
-                angle = np.arccos(np.clip(cos_angle, -1.0, 1.0))
+                angle = np.arccos(np.clip(cos_angle, -1.0, 1.0)) * 180 / np.pi
                 angles.append(angle)
+                max_angle = max(max_angle, angle)
             
-            # 평균 곡률 반환
-            return np.mean(angles) if angles else 0
+            # 최대 각도를 기준으로 곡률 계산 (Cobb 각도와 유사한 방식)
+            # 정상: 0-10도, 경도: 10-25도, 중등도: 25-40도, 중증: 40도 이상
+            normalized_curvature = max_angle / 40.0  # 40도를 기준으로 정규화
+            return normalized_curvature
+            
         except Exception as e:
             print(f"Error in _calculate_curvature: {str(e)}")
             return 0 
